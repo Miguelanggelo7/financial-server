@@ -8,7 +8,6 @@ class Api::V1::SessionsController < Devise::SessionsController
   end
 
   def respond_to_on_destroy
-    puts request.headers["Authorization"]
     if current_user
       render json: { message: "Logged out successfully." }, status: :ok
     else

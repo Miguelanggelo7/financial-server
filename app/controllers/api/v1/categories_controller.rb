@@ -1,7 +1,5 @@
 class Api::V1::CategoriesController < Api::V1::BaseController
   def index
-    puts request.headers["Authorization"]
-    puts current_user
     @categories = current_user.categories.order(:created_at)
     render json: CategoryBlueprint.render(@categories), status: :ok
   end
