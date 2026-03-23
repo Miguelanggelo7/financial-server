@@ -8,6 +8,9 @@ gem "puma", ">= 5.0"
 gem "devise", "~> 4.9"
 gem "devise-jwt", "~> 0.12"
 
+# Serialization
+gem "blueprinter"
+
 gem "tzinfo-data", platforms: %i[ windows jruby ]
 gem "bootsnap", require: false
 gem "rack-cors"

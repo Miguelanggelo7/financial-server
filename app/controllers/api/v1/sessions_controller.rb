@@ -6,7 +6,7 @@ class Api::V1::SessionsController < Devise::SessionsController
   def respond_with(resource, _opts = {})
     render json: {
       status: { code: 200, message: "Logged in successfully." },
-      data: UserSerializer.new(resource).as_json
+      data: UserBlueprint.render_as_hash(resource)
     }, status: :ok
   end
 
