@@ -4,21 +4,15 @@ class Api::V1::SessionsController < Devise::SessionsController
   private
 
   def respond_with(resource, _opts = {})
-    render json: {
-      status: { code: 200, message: "Logged in successfully." },
-      data: UserBlueprint.render_as_hash(resource)
-    }, status: :ok
+    render json: UserBlueprint.render(resource), status: :ok
   end
 
   def respond_to_on_destroy
+    puts request.headers["Authorization"]
     if current_user
-      render json: {
-        status: { code: 200, message: "Logged out successfully." }
-      }, status: :ok
+      render json: { message: "Logged out successfully." }, status: :ok
     else
-      render json: {
-        status: { code: 401, message: "Couldn't find an active session." }
-      }, status: :unauthorized
+      render json: { error: "Couldn't find an active session." }, status: :unauthorized
     end
   end
 end

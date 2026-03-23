@@ -1,0 +1,20 @@
+es:
+  categories:
+    home:
+      name: "Hogar"
+      description: "Gastos del hogar: alquiler, servicios, reparaciones y mantenimiento."
+    leisure:
+      name: "Ocio"
+      description: "Entretenimiento, hobbies y actividades recreativas."
+    subscriptions:
+      name: "Suscripciones"
+      description: "Servicios digitales recurrentes: streaming, apps y membresías."
+    food:
+      name: "Comida"
+      description: "Supermercado, restaurantes y todos los gastos relacionados con alimentación."
+    transport:
+      name: "Transporte"
+      description: "Gasolina, transporte público, aparcamiento y gastos del vehículo."
+    other:
+      name: "Otros"
+      description: "Gastos varios que no encajan en ninguna otra categoría."

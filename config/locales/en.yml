@@ -29,3 +29,22 @@
 
 en:
   hello: "Hello world"
+  categories:
+    home:
+      name: "Home"
+      description: "Housing expenses: rent, utilities, repairs and maintenance."
+    leisure:
+      name: "Leisure"
+      description: "Entertainment, hobbies and recreational activities."
+    subscriptions:
+      name: "Subscriptions"
+      description: "Recurring digital services: streaming, apps and memberships."
+    food:
+      name: "Food"
+      description: "Groceries, restaurants and all food-related expenses."
+    transport:
+      name: "Transport"
+      description: "Fuel, public transit, parking and vehicle expenses."
+    other:
+      name: "Other"
+      description: "Miscellaneous expenses that don't fit any other category."

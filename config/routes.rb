@@ -16,5 +16,11 @@ Rails.application.routes.draw do
     post "api/v1/auth/sign_up", to: "api/v1/registrations#create"
   end
 
+  namespace :api do
+    namespace :v1 do
+      resources :categories, only: %i[index create destroy]
+    end
+  end
+
   get "up" => "rails/health#show", as: :rails_health_check
 end

@@ -35,8 +35,8 @@ module FinancialBack
     # Skip views, helpers and assets when generating a new resource.
     config.api_only = true
 
-    # Middleware needed by Devise/Warden (session stored in memory, not persisted)
-    config.middleware.use ActionDispatch::Cookies
-    config.middleware.use ActionDispatch::Session::CookieStore
+    config.i18n.available_locales = %i[en es]
+    config.i18n.default_locale = :en
+
   end
 end

@@ -21,14 +21,9 @@ No crear sistemas de autenticación alternativos ni custom. Todo pasa por Devise
 
 Los controllers viven bajo `app/controllers/api/v1/`. Siempre heredan de `Api::V1::BaseController`.
 
-Controllers delgados — sin lógica de negocio. Solo:
-1. Autenticación/autorización
-2. Parámetros permitidos (strong params)
-3. Llamar al modelo o service object
-4. Renderizar respuesta JSON
+Controllers delgados — sin lógica de negocio. Solo: autenticación/autorización, strong params, llamar al modelo o service object, y renderizar respuesta JSON.
 
 ```ruby
-# Bien
 def create
   @order = Order.new(order_params)
   if @order.save
@@ -37,52 +32,19 @@ def create
     render json: { errors: @order.errors.full_messages }, status: :unprocessable_entity
   end
 end
-
-# Mal — lógica de negocio en el controller
-def create
-  @order = Order.new(order_params)
-  @order.total = @order.items.sum(&:price) * 1.21
-  @order.status = "pending"
-  UserMailer.order_confirmation(@order).deliver_later
-  ...
-end
 ```
 
 ## Modelos
 
-### Scopes obligatorios
-Toda consulta que se repita más de una vez en el código debe ser un scope en el modelo correspondiente. Nunca duplicar condiciones where en controllers o services.
+Toda query que se repita más de una vez debe ser un scope en el modelo. Nunca duplicar condiciones `where` en controllers o services.
 
-```ruby
-# En el modelo
-scope :active, -> { where(active: true) }
-scope :recent, -> { order(created_at: :desc) }
-scope :by_status, ->(status) { where(status: status) }
-scope :created_between, ->(from, to) { where(created_at: from..to) }
+Las validaciones van siempre en el modelo. Nunca en el controller.
 
-# Uso correcto
-User.active.recent
-Order.by_status("pending").created_between(1.week.ago, Time.current)
-```
-
-### Validaciones
-Las validaciones van siempre en el modelo. Nunca validar en el controller.
-
-### Asociaciones
-Siempre usar eager loading para evitar N+1. Usar `includes`, `preload` o `eager_load` según el caso.
-
-```ruby
-# Mal
-@orders = Order.all
-@orders.each { |o| puts o.user.name } # N+1
-
-# Bien
-@orders = Order.includes(:user).all
-```
+Siempre usar eager loading (`includes`, `preload`, `eager_load`) para evitar N+1.
 
 ## Service objects
 
-Usar service objects para lógica de negocio compleja o cuando un modelo empieza a crecer demasiado. Viven en `app/services/`.
+Para lógica de negocio compleja o cuando un modelo crece demasiado. Viven en `app/services/`.
 
 ```ruby
 # app/services/orders/create_service.rb
@@ -96,96 +58,88 @@ class Orders::CreateService
     # lógica aquí
   end
 end
-
-# Uso en controller
-Orders::CreateService.new(user: current_user, params: order_params).call
 ```
 
 ## Serializers
 
-Usar **Blueprinter** para todas las respuestas JSON. Nunca renderizar modelos ActiveRecord directamente con `render json: @model`.
-
-Los blueprints viven en `app/blueprints/` con el nombre `NombreBlueprint`.
+Usar **Blueprinter** para todas las respuestas JSON. Nunca renderizar modelos ActiveRecord directamente. Los blueprints viven en `app/blueprints/`.
 
 ```ruby
-# app/blueprints/user_blueprint.rb
-class UserBlueprint < Blueprinter::Base
-  identifier :id
-  fields :email, :name, :created_at
-
-  # Vista con datos adicionales
-  view :with_orders do
-    association :orders, blueprint: OrderBlueprint
-  end
-
-  # Vista reducida para listados
-  view :summary do
-    fields :email, :name
-  end
-end
-```
-
-```ruby
-# En el controller
-render json: UserBlueprint.render(@user)                         # objeto único
-render json: UserBlueprint.render(@users)                        # colección
-render json: UserBlueprint.render(@user, view: :with_orders)    # vista específica
+render json: UserBlueprint.render(@user)
+render json: UserBlueprint.render(@users)
+render json: UserBlueprint.render(@user, view: :with_orders)
 ```
 
 ## Respuestas JSON
 
-Respuestas consistentes en toda la API. Siempre usar Blueprinter para el data:
-
 ```ruby
-# Éxito
 render json: UserBlueprint.render(@user), status: :ok
-render json: UserBlueprint.render(@user), status: :created
-
-# Error de validación
 render json: { errors: @resource.errors.full_messages }, status: :unprocessable_entity
-
-# No encontrado
 render json: { error: "Not found" }, status: :not_found
-
-# No autorizado
 render json: { error: "Unauthorized" }, status: :unauthorized
 ```
 
 ## Background Jobs
 
-Cuando sea necesario usar jobs, usar **Sidekiq**. Los jobs viven en `app/jobs/`. Nunca usar `deliver_now` para emails en requests — siempre `deliver_later`.
-
-```ruby
-# Bien
-UserMailer.welcome(@user).deliver_later
-
-# Mal en un request
-UserMailer.welcome(@user).deliver_now
-```
+Sidekiq para jobs. Nunca `deliver_now` en requests — siempre `deliver_later`.
 
 ## Base de datos
 
-- Siempre añadir índices en columnas usadas en `where`, `order` o como foreign keys.
-- Usar migraciones para cualquier cambio de esquema, nunca editar el schema directamente.
+- Añadir índices en columnas usadas en `where`, `order` o como foreign keys.
+- Usar migraciones para cualquier cambio de esquema.
 - Añadir `null: false` y `default` en columnas que lo requieran directamente en la migración.
-
-```ruby
-# Bien en migración
-add_index :users, :email, unique: true
-add_index :orders, [:user_id, :status]
-t.string :status, null: false, default: "pending"
-```
 
 ## Tests
 
-No hay tests de momento. Cuando se implementen, usar RSpec + FactoryBot.
+No hay tests. No generar specs ni archivos de test salvo que se pida explícitamente. Cuando se implementen: RSpec + FactoryBot.
 
-No generar specs ni archivos de test a menos que se pida explícitamente.
+## Postman — sincronización automática
+
+Cuando modifiques algo relacionado con la API (rutas, parámetros, request/response bodies, nuevos endpoints, autenticación), debes actualizar Postman automáticamente al terminar el cambio de código.
+
+### IDs de referencia
+
+| Recurso | ID |
+|---|---|
+| Workspace | `ba21554e-7bcd-419b-a1cc-7caf1fe8ebf6` |
+| Spec (OpenAPI) | `9baf9355-5a8a-4bda-a5d9-c8f0c2dccc12` |
+| Collection | `f2b3e0f0-d046-4e27-b3e1-2d55a70efbe0` |
+| Environment | `454c17d6-1c40-41c3-a295-f633cab99e3d` |
+
+### Flujo obligatorio al cambiar la API
+
+**1. Actualizar el spec OpenAPI** con `mcp__postman__updateSpecFile`:
+- `specId`: `9baf9355-5a8a-4bda-a5d9-c8f0c2dccc12`
+- `path`: `openapi.yaml`
+- Reflejar exactamente los cambios: nuevas rutas, parámetros añadidos/eliminados, bodies, responses.
+
+**2. Sincronizar la colección** con `mcp__postman__syncCollectionWithSpec`:
+- `specId`: `9baf9355-5a8a-4bda-a5d9-c8f0c2dccc12`
+- `collectionId`: `43952046-f2b3e0f0-d046-4e27-b3e1-2d55a70efbe0`
+
+**3. Re-aplicar scripts** en los requests nuevos o modificados con `mcp__postman__updateCollectionRequest`:
+- `collectionId`: `f2b3e0f0-d046-4e27-b3e1-2d55a70efbe0`
+- Sign Up / Sign In → script test que guarda `bearerToken` desde el header `Authorization`
+- Sign Out → script test que limpia `bearerToken`
+- List Categories → script test que guarda `category_id` desde `response.json()[0].id`
+- Create Category → script test que guarda `category_id` desde `response.json().id`
+- Sign Up / Sign In usan `auth: { type: "noauth" }` (la autenticación la maneja la colección a nivel global)
+
+### Qué dispara la actualización
+
+- Cambios en `config/routes.rb`
+- Cambios en strong params de cualquier controller
+- Nuevos actions en controllers o nuevos controllers
+- Cambios en blueprints que afecten los campos del response
+- Nuevos modelos con endpoints asociados
+
+### Qué NO dispara la actualización
+
+- Cambios internos de lógica en services o modelos sin impacto en la interfaz HTTP
+- Migraciones que no añadan/eliminen campos visibles en la API
+- Refactors internos sin cambio de contrato
 
 ## Convenciones generales
 
-- Nombres de clases en inglés, siempre.
-- Métodos y variables en snake_case.
-- Constantes en SCREAMING_SNAKE_CASE.
-- Evitar callbacks de ActiveRecord (`before_save`, `after_create`, etc.) para lógica de negocio — usar service objects en su lugar.
+- Evitar callbacks de ActiveRecord para lógica de negocio — usar service objects.
 - No usar gemas nuevas sin consultarlo primero.
