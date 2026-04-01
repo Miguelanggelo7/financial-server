@@ -29,6 +29,20 @@ class Api::V1::TransactionsController < Api::V1::BaseController
     end
   end
 
+  def parse_from_prompt
+    transaction = Transactions::ParseFromPromptService.new(
+      user: current_user,
+      amount_cents: params.require(:amount_cents).to_i,
+      currency: params.fetch(:currency, "USD"),
+      prompt: params.require(:prompt)
+    ).call
+    render json: TransactionBlueprint.render(transaction), status: :created
+  rescue ActionController::ParameterMissing => e
+    render json: { error: e.message }, status: :bad_request
+  rescue => e
+    render json: { error: e.message }, status: :unprocessable_entity
+  end
+
   def destroy
     @transaction.destroy
     render json: { message: "Transaction deleted." }, status: :ok

@@ -6,6 +6,7 @@ class CreateTransactions < ActiveRecord::Migration[8.0]
       t.bigint     :amount_cents,  null: false
       t.string     :currency,      null: false, default: "USD", limit: 3
       t.text       :description
+      t.text       :argumentation
       t.datetime   :transacted_at, null: false
 
       t.timestamps

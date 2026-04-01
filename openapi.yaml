@@ -365,6 +365,58 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /api/v1/transactions/parse_from_prompt:
+    post:
+      summary: Parse and Create Transaction from Natural Language Prompt
+      description: >
+        Sends the amount and a natural language description to an LLM (Groq).
+        The LLM infers the transaction description, the most appropriate category,
+        and the date. Returns the created transaction.
+      tags: [Transactions]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount_cents, prompt]
+              properties:
+                amount_cents:
+                  type: integer
+                  description: "Amount in cents, non-zero. Negative for expenses, positive for income."
+                currency:
+                  type: string
+                  enum: [USD, EUR, USDT]
+                  default: USD
+                prompt:
+                  type: string
+                  description: "Natural language description of the transaction. e.g. 'Dinner with friends at Italian restaurant last night'"
+      responses:
+        "201":
+          description: Transaction created from prompt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transaction"
+        "400":
+          description: Missing required parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "422":
+          description: LLM error or transaction validation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /api/v1/transactions/{id}:
     get:
       summary: Get Transaction

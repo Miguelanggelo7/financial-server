@@ -31,6 +31,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_03_28_000001) do
     t.bigint "amount_cents", null: false
     t.string "currency", limit: 3, default: "USD", null: false
     t.text "description"
+    t.text "argumentation"
     t.datetime "transacted_at", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
