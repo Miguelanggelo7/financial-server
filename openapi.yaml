@@ -64,6 +64,35 @@ components:
         error:
           type: string
 
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: integer
+        amount_cents:
+          type: integer
+          description: "Amount in cents (negative = expense, positive = income). e.g. -1250 means -$12.50"
+        amount:
+          type: string
+          description: "Human-readable decimal string. e.g. \"-12.50\""
+        currency:
+          type: string
+          enum: [USD, EUR, USDT]
+        description:
+          type: string
+          nullable: true
+        transacted_at:
+          type: string
+          format: date-time
+        category:
+          $ref: "#/components/schemas/Category"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
 paths:
   /api/v1/auth/sign_up:
     post:
@@ -241,6 +270,201 @@ paths:
       responses:
         "200":
           description: Category deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        "422":
+          description: Category has transactions and cannot be deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Errors"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/v1/transactions:
+    get:
+      summary: List Transactions
+      tags: [Transactions]
+      responses:
+        "200":
+          description: List of transactions for the authenticated user, ordered newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Transaction"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    post:
+      summary: Create Transaction
+      tags: [Transactions]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [transaction]
+              properties:
+                transaction:
+                  type: object
+                  required: [amount_cents, transacted_at, category_id]
+                  properties:
+                    amount_cents:
+                      type: integer
+                      description: "Amount in cents, non-zero. Negative for expenses, positive for income."
+                    currency:
+                      type: string
+                      enum: [USD, EUR, USDT]
+                      default: USD
+                    description:
+                      type: string
+                    transacted_at:
+                      type: string
+                      format: date-time
+                    category_id:
+                      type: integer
+      responses:
+        "201":
+          description: Transaction created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transaction"
+        "422":
+          description: Validation errors
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Errors"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/v1/transactions/{id}:
+    get:
+      summary: Get Transaction
+      tags: [Transactions]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Transaction found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transaction"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    patch:
+      summary: Update Transaction
+      tags: [Transactions]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [transaction]
+              properties:
+                transaction:
+                  type: object
+                  properties:
+                    amount_cents:
+                      type: integer
+                    currency:
+                      type: string
+                      enum: [USD, EUR, USDT]
+                    description:
+                      type: string
+                    transacted_at:
+                      type: string
+                      format: date-time
+                    category_id:
+                      type: integer
+      responses:
+        "200":
+          description: Transaction updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transaction"
+        "422":
+          description: Validation errors
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Errors"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    delete:
+      summary: Delete Transaction
+      tags: [Transactions]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Transaction deleted
           content:
             application/json:
               schema:

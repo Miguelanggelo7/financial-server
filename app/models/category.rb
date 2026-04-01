@@ -2,6 +2,7 @@ class Category < ApplicationRecord
   DEFAULT_KEYS = %w[home leisure subscriptions food transport other].freeze
 
   belongs_to :user
+  has_many :transactions, dependent: :restrict_with_error
 
   validates :key, inclusion: { in: DEFAULT_KEYS }, allow_blank: true
   validates :key, uniqueness: { scope: :user_id }, allow_blank: true

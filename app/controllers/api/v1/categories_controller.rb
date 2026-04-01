@@ -15,8 +15,11 @@ class Api::V1::CategoriesController < Api::V1::BaseController
 
   def destroy
     @category = current_user.categories.find(params[:id])
-    @category.destroy
-    render json: { message: "Category deleted." }, status: :ok
+    if @category.destroy
+      render json: { message: "Category deleted." }, status: :ok
+    else
+      render json: { errors: @category.errors.full_messages }, status: :unprocessable_entity
+    end
   end
 
   private

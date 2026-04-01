@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_03_23_000001) do
+ActiveRecord::Schema[8.0].define(version: 2026_03_28_000001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -23,6 +23,21 @@ ActiveRecord::Schema[8.0].define(version: 2026_03_23_000001) do
     t.datetime "updated_at", null: false
     t.index ["user_id", "key"], name: "index_categories_on_user_id_and_key", unique: true, where: "(key IS NOT NULL)"
     t.index ["user_id"], name: "index_categories_on_user_id"
+  end
+
+  create_table "transactions", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.bigint "category_id", null: false
+    t.bigint "amount_cents", null: false
+    t.string "currency", limit: 3, default: "USD", null: false
+    t.text "description"
+    t.datetime "transacted_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["category_id"], name: "index_transactions_on_category_id"
+    t.index ["user_id", "category_id"], name: "index_transactions_on_user_id_and_category_id"
+    t.index ["user_id", "transacted_at"], name: "index_transactions_on_user_id_and_transacted_at"
+    t.index ["user_id"], name: "index_transactions_on_user_id"
   end
 
   create_table "users", force: :cascade do |t|
@@ -42,4 +57,6 @@ ActiveRecord::Schema[8.0].define(version: 2026_03_23_000001) do
   end
 
   add_foreign_key "categories", "users"
+  add_foreign_key "transactions", "categories"
+  add_foreign_key "transactions", "users"
 end

@@ -6,6 +6,7 @@ class User < ApplicationRecord
          :jwt_authenticatable, jwt_revocation_strategy: self
 
   has_many :categories, dependent: :destroy
+  has_many :transactions, dependent: :destroy
 
   def full_name
     "#{first_name} #{last_name}".strip
