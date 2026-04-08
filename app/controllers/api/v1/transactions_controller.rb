@@ -14,7 +14,15 @@ class Api::V1::TransactionsController < Api::V1::BaseController
   end
 
   def create
-    @transaction = @wallet.transactions.new(transaction_params)
+    parsed = get_params([
+      { name: :amount_cents,  type: :int,    required: true  },
+      { name: :transacted_at, type: :date,   required: true  },
+      { name: :description,   type: :string, required: false },
+      { name: :category_id,   type: :int,    required: false }
+    ])
+    return unless parsed
+
+    @transaction = @wallet.transactions.new(parsed)
     if @transaction.save
       render json: TransactionBlueprint.render(@transaction), status: :created
     else
@@ -23,7 +31,15 @@ class Api::V1::TransactionsController < Api::V1::BaseController
   end
 
   def update
-    if @transaction.update(transaction_params)
+    parsed = get_params([
+      { name: :amount_cents,  type: :int,    required: false },
+      { name: :transacted_at, type: :date,   required: false },
+      { name: :description,   type: :string, required: false },
+      { name: :category_id,   type: :int,    required: false }
+    ])
+    return unless parsed
+
+    if @transaction.update(parsed)
       render json: TransactionBlueprint.render(@transaction), status: :ok
     else
       render json: { errors: @transaction.errors.full_messages }, status: :unprocessable_entity
@@ -31,20 +47,18 @@ class Api::V1::TransactionsController < Api::V1::BaseController
   end
 
   def parse_from_prompt
-    transacted_at = parse_transacted_at(params.require(:transacted_at))
-    prompt = params.require(:prompt).presence
-
-    return render json: { error: "transacted_at is not a valid date" }, status: :bad_request if transacted_at.nil?
-    return render json: { error: "prompt can't be blank" }, status: :bad_request if prompt.nil?
+    parsed = get_params([
+      { name: :transacted_at, type: :date,   required: true },
+      { name: :prompt,        type: :string, required: true }
+    ])
+    return unless parsed
 
     transaction = Transactions::ParseFromPromptService.new(
       wallet: @wallet,
-      transacted_at: transacted_at,
-      prompt: prompt
+      transacted_at: parsed[:transacted_at],
+      prompt: parsed[:prompt]
     ).call
     render json: TransactionBlueprint.render(transaction), status: :created
-  rescue ActionController::ParameterMissing => e
-    render json: { error: e.message }, status: :bad_request
   rescue => e
     render json: { error: e.message }, status: :unprocessable_entity
   end
@@ -64,18 +78,4 @@ class Api::V1::TransactionsController < Api::V1::BaseController
     @transaction = @wallet.transactions.find(params[:id])
   end
 
-  def parse_transacted_at(value)
-    DateTime.iso8601(value.to_s)
-  rescue ArgumentError, TypeError
-    nil
-  end
-
-  def transaction_params
-    params.require(:transaction).permit(
-      :amount_cents,
-      :description,
-      :transacted_at,
-      :category_id
-    )
-  end
 end

@@ -11,7 +11,13 @@ class Api::V1::WalletsController < Api::V1::BaseController
   end
 
   def create
-    @wallet = current_user.wallets.new(wallet_params)
+    parsed = get_params([
+      { name: :name,     type: :string, required: true  },
+      { name: :currency, type: :string, required: true  }
+    ])
+    return unless parsed
+
+    @wallet = current_user.wallets.new(parsed)
     if @wallet.save
       render json: WalletBlueprint.render(@wallet), status: :created
     else
@@ -20,7 +26,13 @@ class Api::V1::WalletsController < Api::V1::BaseController
   end
 
   def update
-    if @wallet.update(wallet_params)
+    parsed = get_params([
+      { name: :name,     type: :string, required: false },
+      { name: :currency, type: :string, required: false }
+    ])
+    return unless parsed
+
+    if @wallet.update(parsed)
       render json: WalletBlueprint.render(@wallet), status: :ok
     else
       render json: { errors: @wallet.errors.full_messages }, status: :unprocessable_entity
@@ -38,7 +50,4 @@ class Api::V1::WalletsController < Api::V1::BaseController
     @wallet = current_user.wallets.find(params[:id])
   end
 
-  def wallet_params
-    params.require(:wallet).permit(:name, :currency)
-  end
 end

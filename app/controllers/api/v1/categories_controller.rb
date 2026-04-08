@@ -5,7 +5,13 @@ class Api::V1::CategoriesController < Api::V1::BaseController
   end
 
   def create
-    @category = current_user.categories.new(category_params)
+    parsed = get_params([
+      { name: :name,        type: :string, required: true  },
+      { name: :description, type: :string, required: false }
+    ])
+    return unless parsed
+
+    @category = current_user.categories.new(parsed)
     if @category.save
       render json: CategoryBlueprint.render(@category), status: :created
     else
@@ -24,7 +30,4 @@ class Api::V1::CategoriesController < Api::V1::BaseController
 
   private
 
-  def category_params
-    params.require(:category).permit(:name, :description)
-  end
 end

@@ -14,6 +14,7 @@ class Transactions::ParseFromPromptService
 
   def call
     parsed = call_groq
+    puts parsed.inspect
     create_transaction(parsed)
   end
 
@@ -29,7 +30,7 @@ class Transactions::ParseFromPromptService
     <<~PROMPT
       You are a financial assistant that parses transaction descriptions.
       Return a JSON object with exactly these fields:
-      - "amount_cents": the transaction amount in cents as an integer (e.g. "52 mil" → 5200000, "1.5k" → 150000, "200" → 20000). Parse abbreviations, shorthand, and natural language numbers. The wallet currency is #{@wallet.currency.upcase}.
+      - "amount_cents": the transaction amount in cents as an integer. Convert the amount to cents by multiplying by 100 (e.g. "10 dollars" → 1000, "52 mil" → 5200000, "1.5k" → 150000, "200" → 20000, "10.50" → 1050). Parse abbreviations, shorthand, and natural language numbers. IMPORTANT: "10 dollars" = 1000 cents, NOT 100000. The wallet currency is #{@wallet.currency.upcase}.
       - "description": a clean, concise description of the transaction (string)
       - "category_id": the most appropriate category ID from the list below (integer, must be one of the provided IDs)
       - "argumentation": a brief explanation of why you chose that category for this transaction (string)

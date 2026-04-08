@@ -8,7 +8,7 @@ module Commons::Parameters
       name  = defn[:name]
       raw   = params[name]
 
-      next result[name] = nil if raw.blank? && !defn[:required]
+      next if raw.blank? && !defn[:required]
       return render_param_error("Missing required parameter: #{name}") if raw.blank?
 
       parsed = send(:"parse_#{defn[:type]}", raw)
