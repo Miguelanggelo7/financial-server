@@ -5,8 +5,9 @@ class User < ApplicationRecord
          :recoverable, :validatable,
          :jwt_authenticatable, jwt_revocation_strategy: self
 
-  has_many :categories, dependent: :destroy
-  has_many :transactions, dependent: :destroy
+  has_many :categories,   dependent: :destroy
+  has_many :wallets,      dependent: :destroy
+  has_many :transactions, through: :wallets
 
   def full_name
     "#{first_name} #{last_name}".strip

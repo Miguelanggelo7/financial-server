@@ -50,19 +50,25 @@ components:
           type: string
           format: date-time
 
-    Errors:
+    Wallet:
       type: object
       properties:
-        errors:
-          type: array
-          items:
-            type: string
-
-    Error:
-      type: object
-      properties:
-        error:
+        id:
+          type: integer
+        name:
           type: string
+        currency:
+          type: string
+          enum: [usd, eur, ves]
+        balance_cents:
+          type: integer
+          description: "Sum of all transaction amounts in cents"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
 
     Transaction:
       type: object
@@ -77,13 +83,14 @@ components:
           description: "Human-readable decimal string. e.g. \"-12.50\""
         currency:
           type: string
-          enum: [USD, EUR, USDT]
+          enum: [usd, eur, ves]
+          description: "Inherited from the wallet"
         description:
           type: string
           nullable: true
         transacted_at:
           type: string
-          format: date-time
+          format: date
         category:
           $ref: "#/components/schemas/Category"
         created_at:
@@ -92,6 +99,20 @@ components:
         updated_at:
           type: string
           format: date-time
+
+    Errors:
+      type: object
+      properties:
+        errors:
+          type: array
+          items:
+            type: string
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
 
 paths:
   /api/v1/auth/sign_up:
@@ -296,19 +317,204 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
-  /api/v1/transactions:
+  /api/v1/wallets:
+    get:
+      summary: List Wallets
+      tags: [Wallets]
+      responses:
+        "200":
+          description: List of wallets for the authenticated user
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Wallet"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    post:
+      summary: Create Wallet
+      tags: [Wallets]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [wallet]
+              properties:
+                wallet:
+                  type: object
+                  required: [name, currency]
+                  properties:
+                    name:
+                      type: string
+                    currency:
+                      type: string
+                      enum: [usd, eur, ves]
+      responses:
+        "201":
+          description: Wallet created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Wallet"
+        "422":
+          description: Validation errors
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Errors"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/v1/wallets/{id}:
+    get:
+      summary: Get Wallet
+      tags: [Wallets]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Wallet found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Wallet"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    patch:
+      summary: Update Wallet
+      tags: [Wallets]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [wallet]
+              properties:
+                wallet:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    currency:
+                      type: string
+                      enum: [usd, eur, ves]
+      responses:
+        "200":
+          description: Wallet updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Wallet"
+        "422":
+          description: Validation errors
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Errors"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    delete:
+      summary: Delete Wallet
+      tags: [Wallets]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Wallet deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/v1/wallets/{wallet_id}/transactions:
     get:
       summary: List Transactions
       tags: [Transactions]
+      parameters:
+        - name: wallet_id
+          in: path
+          required: true
+          schema:
+            type: integer
       responses:
         "200":
-          description: List of transactions for the authenticated user, ordered newest first
+          description: List of transactions for the wallet, ordered newest first
           content:
             application/json:
               schema:
                 type: array
                 items:
                   $ref: "#/components/schemas/Transaction"
+        "404":
+          description: Wallet not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
         "401":
           description: Unauthorized
           content:
@@ -319,6 +525,12 @@ paths:
     post:
       summary: Create Transaction
       tags: [Transactions]
+      parameters:
+        - name: wallet_id
+          in: path
+          required: true
+          schema:
+            type: integer
       requestBody:
         required: true
         content:
@@ -334,15 +546,11 @@ paths:
                     amount_cents:
                       type: integer
                       description: "Amount in cents, non-zero. Negative for expenses, positive for income."
-                    currency:
-                      type: string
-                      enum: [USD, EUR, USDT]
-                      default: USD
                     description:
                       type: string
                     transacted_at:
                       type: string
-                      format: date-time
+                      format: date
                     category_id:
                       type: integer
       responses:
@@ -358,6 +566,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Errors"
+        "404":
+          description: Wallet not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
         "401":
           description: Unauthorized
           content:
@@ -365,32 +579,35 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
-  /api/v1/transactions/parse_from_prompt:
+  /api/v1/wallets/{wallet_id}/transactions/parse_from_prompt:
     post:
       summary: Parse and Create Transaction from Natural Language Prompt
       description: >
         Sends the amount and a natural language description to an LLM (Groq).
         The LLM infers the transaction description, the most appropriate category,
-        and the date. Returns the created transaction.
+        and the date. Returns the created transaction. Currency is inherited from the wallet.
       tags: [Transactions]
+      parameters:
+        - name: wallet_id
+          in: path
+          required: true
+          schema:
+            type: integer
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [amount_cents, prompt]
+              required: [transacted_at, prompt]
               properties:
-                amount_cents:
-                  type: integer
-                  description: "Amount in cents, non-zero. Negative for expenses, positive for income."
-                currency:
+                transacted_at:
                   type: string
-                  enum: [USD, EUR, USDT]
-                  default: USD
+                  format: date-time
+                  description: "ISO 8601 date of the transaction."
                 prompt:
                   type: string
-                  description: "Natural language description of the transaction. e.g. 'Dinner with friends at Italian restaurant last night'"
+                  description: "Natural language description of the transaction including the amount. e.g. 'Dinner with friends, 52 mil pesos'"
       responses:
         "201":
           description: Transaction created from prompt
@@ -410,6 +627,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+        "404":
+          description: Wallet not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
         "401":
           description: Unauthorized
           content:
@@ -417,11 +640,16 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
-  /api/v1/transactions/{id}:
+  /api/v1/wallets/{wallet_id}/transactions/{id}:
     get:
       summary: Get Transaction
       tags: [Transactions]
       parameters:
+        - name: wallet_id
+          in: path
+          required: true
+          schema:
+            type: integer
         - name: id
           in: path
           required: true
@@ -451,6 +679,11 @@ paths:
       summary: Update Transaction
       tags: [Transactions]
       parameters:
+        - name: wallet_id
+          in: path
+          required: true
+          schema:
+            type: integer
         - name: id
           in: path
           required: true
@@ -469,14 +702,11 @@ paths:
                   properties:
                     amount_cents:
                       type: integer
-                    currency:
-                      type: string
-                      enum: [USD, EUR, USDT]
                     description:
                       type: string
                     transacted_at:
                       type: string
-                      format: date-time
+                      format: date
                     category_id:
                       type: integer
       responses:
@@ -509,6 +739,11 @@ paths:
       summary: Delete Transaction
       tags: [Transactions]
       parameters:
+        - name: wallet_id
+          in: path
+          required: true
+          schema:
+            type: integer
         - name: id
           in: path
           required: true

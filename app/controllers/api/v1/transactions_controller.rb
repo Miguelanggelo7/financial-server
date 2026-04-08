@@ -1,10 +1,11 @@
 class Api::V1::TransactionsController < Api::V1::BaseController
+  before_action :set_wallet
   before_action :set_transaction, only: %i[show update destroy]
 
   def index
-    @transactions = current_user.transactions
-                                .with_category
-                                .by_date
+    @transactions = @wallet.transactions
+                           .with_category
+                           .by_date
     render json: TransactionBlueprint.render(@transactions), status: :ok
   end
 
@@ -13,7 +14,7 @@ class Api::V1::TransactionsController < Api::V1::BaseController
   end
 
   def create
-    @transaction = current_user.transactions.new(transaction_params)
+    @transaction = @wallet.transactions.new(transaction_params)
     if @transaction.save
       render json: TransactionBlueprint.render(@transaction), status: :created
     else
@@ -30,11 +31,16 @@ class Api::V1::TransactionsController < Api::V1::BaseController
   end
 
   def parse_from_prompt
+    transacted_at = parse_transacted_at(params.require(:transacted_at))
+    prompt = params.require(:prompt).presence
+
+    return render json: { error: "transacted_at is not a valid date" }, status: :bad_request if transacted_at.nil?
+    return render json: { error: "prompt can't be blank" }, status: :bad_request if prompt.nil?
+
     transaction = Transactions::ParseFromPromptService.new(
-      user: current_user,
-      amount_cents: params.require(:amount_cents).to_i,
-      currency: params.fetch(:currency, "USD"),
-      prompt: params.require(:prompt)
+      wallet: @wallet,
+      transacted_at: transacted_at,
+      prompt: prompt
     ).call
     render json: TransactionBlueprint.render(transaction), status: :created
   rescue ActionController::ParameterMissing => e
@@ -50,14 +56,23 @@ class Api::V1::TransactionsController < Api::V1::BaseController
 
   private
 
+  def set_wallet
+    @wallet = current_user.wallets.find(params[:wallet_id])
+  end
+
   def set_transaction
-    @transaction = current_user.transactions.find(params[:id])
+    @transaction = @wallet.transactions.find(params[:id])
+  end
+
+  def parse_transacted_at(value)
+    DateTime.iso8601(value.to_s)
+  rescue ArgumentError, TypeError
+    nil
   end
 
   def transaction_params
     params.require(:transaction).permit(
       :amount_cents,
-      :currency,
       :description,
       :transacted_at,
       :category_id

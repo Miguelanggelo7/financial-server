@@ -4,6 +4,8 @@ class Api::V1::BaseController < ApplicationController
 
   rescue_from ActiveRecord::RecordNotFound, with: :record_not_found
 
+  include Commons::Parameters
+
   private
 
   def set_locale

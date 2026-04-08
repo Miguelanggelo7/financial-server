@@ -5,10 +5,9 @@ class Transactions::ParseFromPromptService
   GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions".freeze
   MODEL = "llama-3.3-70b-versatile".freeze
 
-  def initialize(user:, amount_cents:, currency:, prompt:, locale: I18n.locale)
-    @user = user
-    @amount_cents = amount_cents
-    @currency = currency
+  def initialize(wallet:, transacted_at:, prompt:, locale: I18n.locale)
+    @wallet = wallet
+    @transacted_at = transacted_at
     @prompt = prompt
     @locale = locale
   end
@@ -21,7 +20,7 @@ class Transactions::ParseFromPromptService
   private
 
   def categories_context
-    @user.categories.map do |cat|
+    @wallet.user.categories.map do |cat|
       "- id: #{cat.id}, name: #{cat.display_name}, description: #{cat.description}"
     end.join("\n")
   end
@@ -30,9 +29,9 @@ class Transactions::ParseFromPromptService
     <<~PROMPT
       You are a financial assistant that parses transaction descriptions.
       Return a JSON object with exactly these fields:
+      - "amount_cents": the transaction amount in cents as an integer (e.g. "52 mil" → 5200000, "1.5k" → 150000, "200" → 20000). Parse abbreviations, shorthand, and natural language numbers. The wallet currency is #{@wallet.currency.upcase}.
       - "description": a clean, concise description of the transaction (string)
       - "category_id": the most appropriate category ID from the list below (integer, must be one of the provided IDs)
-      - "transacted_at": ISO 8601 datetime in UTC (use #{Time.current.iso8601} if not specified in the input)
       - "argumentation": a brief explanation of why you chose that category for this transaction (string)
 
       Available categories:
@@ -56,7 +55,7 @@ class Transactions::ParseFromPromptService
       model: MODEL,
       messages: [
         { role: "system", content: system_prompt },
-        { role: "user", content: "Amount: #{@amount_cents} cents (#{@currency}). Transaction: #{@prompt}" }
+        { role: "user", content: @prompt }
       ],
       response_format: { type: "json_object" },
       temperature: 0
@@ -74,17 +73,16 @@ class Transactions::ParseFromPromptService
 
   def create_transaction(parsed)
     category_id = parsed["category_id"]
-    unless @user.categories.exists?(category_id)
+    unless @wallet.user.categories.exists?(category_id)
       raise "Invalid category returned by LLM: #{category_id}"
     end
 
-    transaction = @user.transactions.new(
-      amount_cents: @amount_cents,
-      currency: @currency,
+    transaction = @wallet.transactions.new(
+      amount_cents: parsed["amount_cents"],
       description: parsed["description"],
       argumentation: parsed["argumentation"],
       category_id: category_id,
-      transacted_at: parsed["transacted_at"]
+      transacted_at: @transacted_at
     )
 
     unless transaction.save

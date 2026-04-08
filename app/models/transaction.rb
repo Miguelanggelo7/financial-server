@@ -1,14 +1,15 @@
 class Transaction < ApplicationRecord
-  SUPPORTED_CURRENCIES = %w[USD EUR USDT].freeze
-
-  belongs_to :user
+  belongs_to :wallet
   belongs_to :category
 
+  has_one :user, through: :wallet
+
+  delegate :currency, to: :wallet
+
   validates :amount_cents,  presence: true, numericality: { only_integer: true, other_than: 0 }
-  validates :currency,      presence: true, inclusion: { in: SUPPORTED_CURRENCIES }
   validates :transacted_at, presence: true
 
-  scope :for_user,      ->(user)      { where(user: user) }
+  scope :for_user,      ->(user)      { joins(:wallet).where(wallets: { user_id: user.id }) }
   scope :by_date,       ->            { order(transacted_at: :desc) }
   scope :in_date_range, ->(from, to)  { where(transacted_at: from..to) }
   scope :for_category,  ->(category)  { where(category: category) }
