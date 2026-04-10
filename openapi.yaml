@@ -640,6 +640,70 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /api/v1/enablebanking/token:
+    post:
+      summary: Generate Enable Banking JWT
+      description: >
+        Generates a signed RS256 JWT using the application's RSA private key.
+        The token is valid for 1 hour and can be used to authenticate requests
+        against the Enable Banking API.
+      tags: [Enable Banking]
+      responses:
+        "200":
+          description: JWT generated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    description: "Signed RS256 JWT for Enable Banking API"
+        "422":
+          description: Invalid private key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/v1/enablebanking/aspsps:
+    get:
+      summary: List Available ASPSPs
+      description: >
+        Returns the list of Account Servicing Payment Service Providers (ASPSPs)
+        available in Enable Banking.
+      tags: [Enable Banking]
+      responses:
+        "200":
+          description: List of ASPSPs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  aspsps:
+                    type: array
+                    items:
+                      type: object
+        "503":
+          description: Enable Banking API unreachable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /api/v1/wallets/{wallet_id}/transactions/{id}:
     get:
       summary: Get Transaction

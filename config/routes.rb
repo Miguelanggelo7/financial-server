@@ -26,6 +26,11 @@ Rails.application.routes.draw do
           end
         end
       end
+
+      scope :enablebanking do
+        post :token, to: "enablebanking#create"
+        get :aspsps, to: "enablebanking#list_available_aspsp"
+      end
     end
   end
 
